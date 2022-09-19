@@ -1,5 +1,10 @@
 global with sharing class findApptSlotsCallable implements vlocity_cmt.VlocityOpenInterface {
     
+    //Date: 9-19-2022
+    //Description:  Retrieves FSL appointment slots for a Service Appointment 
+    //Service Appt Id for testing 08p4x0000026RW9AAM    
+    //https://salesforce.stackexchange.com/questions/350135/system-jsonexception-type-cannot-be-serialized-cant-serialize-getslots-result
+    
     global boolean invokeMethod(String methodName, Map<String, object> input, Map<String, object> output, Map<String, object> options){
         boolean result=true;
         
@@ -16,6 +21,7 @@ global with sharing class findApptSlotsCallable implements vlocity_cmt.VlocityOp
         }
         return result;
     }
+    
     public void getApptSlots (Map<String, object> input, Map<String, object> output, Map<String, object> options){
         String saId=(String)input.get('saId');
         
@@ -31,32 +37,18 @@ global with sharing class findApptSlotsCallable implements vlocity_cmt.VlocityOp
         List<FSL.AppointmentBookingSlot> slots = FSL.AppointmentBookingService.GetSlots(sa.Id, schedulingPolicyId, operatingHoursId, tz, false);
         
         //Some standard objects can't be serialized. You need to manually copy it to something that can be serialized.
-        ABS[] results = new ABS[0];
+        List<Map<String, Object>> results = new List<Map<String, Object>>();                
         for(FSL.AppointmentBookingSlot slot: slots) {
-            results.add(new ABS(slot.grade, slot.interval));
-        }
-        
-        String absAsJSON = JSON.serialize(results);
-        //System.debug('Returned ' + slots.size() + ' appointment slots');
-        //for(integer i=0; i<slots.size(); i++){
-        
-        //    system.debug('Slot:'+i+' Start: '+slots[i].Interval.Start+' Finish:'+ slots[i].Interval.Finish+' Grade: '+slots[i].Grade);
-        //}
-        
-        System.debug('JSON: ' + absAsJSON);
-        
-      	output.put('result',results);
-         
-    }
 
-    //Some standard objects can't be serialized. You need to manually copy it to something that can be serialized.
-    class ABS {
-        public Decimal grade;
-        public DateTime startTime, endTime;
-        ABS(Decimal grade, FSL.TimeInterval interval) {
-            this.grade = grade;
-            this.startTime = interval.start;
-            this.endTime = interval.finish;
+            Map<String, Object> entry = new Map<String, Object>();
+            entry.put('grade', slot.grade);
+            entry.put('startTime', slot.interval.start);
+            entry.put('endTime', slot.interval.finish);
+            
+            results.add(entry);
         }
+        
+      	output.put('result', results);
+         
     }
 }
